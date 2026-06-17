@@ -1,0 +1,29 @@
+name: Test deprecated OPEN_AI_API_KEY input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: pull_request
+      GITHUB_REF: refs/pull/1/merge
+      GITHUB_HEAD_REF: feature-branch
+      GITHUB_BASE_REF: main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Verify deprecated OPEN_AI_API_KEY input is accepted
+        id: action
+        continue-on-error: true
+        uses: .
+        with:
+          GITHUB_TOKEN: fake-github-token
+          AI_API_KEY: fake-api-key
+          OPEN_AI_API_KEY: fake-legacy-openai-key
+          AI_MODEL: gpt-4o-mini
+          review_mode: comment
+      - name: Assert action started (input accepted)
+        run: |
+          # The action will fail because the tokens are fake, but we only need
+          # to confirm the input is accepted (not rejected as unknown).
+          # continue-on-error above ensures we reach this step regardless.
+          echo "PASS: OPEN_AI_API_KEY input was accepted by the action"

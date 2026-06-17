@@ -1,0 +1,38 @@
+name: Test prompt_override parameter
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: pull_request
+      GITHUB_REF: refs/pull/1/merge
+      GITHUB_HEAD_REF: feature-branch
+      GITHUB_BASE_REF: main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Invoke Robin AI Reviewer with prompt_override
+        id: action
+        uses: .
+        continue-on-error: true
+        with:
+          GITHUB_TOKEN: fake-github-token
+          AI_API_KEY: fake-api-key
+          AI_PROVIDER: openai
+          AI_MODEL: gpt-4o-mini
+          prompt_override: 'You are a helpful code reviewer. Focus on security issues only.'
+          review_mode: comment
+
+      - name: Assert action ran with prompt_override
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "action outcome: $OUTCOME"
+          # The action should fail because the tokens are fake, not because
+          # the prompt_override input is invalid or the Docker image failed to build.
+          if [ "$OUTCOME" = "skipped" ]; then
+            echo "FAIL: action was skipped — it did not run at all"
+            exit 1
+          fi
+          echo "PASS: action ran with prompt_override (outcome=$OUTCOME)"

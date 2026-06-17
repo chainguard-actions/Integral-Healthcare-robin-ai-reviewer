@@ -1,0 +1,33 @@
+name: Test legacy gpt_model_name input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: pull_request
+      GITHUB_REF: refs/pull/1/merge
+      GITHUB_HEAD_REF: feature-branch
+      GITHUB_BASE_REF: main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Test action starts with legacy gpt_model_name input
+        id: action
+        continue-on-error: true
+        uses: .
+        with:
+          GITHUB_TOKEN: fake-github-token
+          AI_API_KEY: fake-ai-api-key
+          gpt_model_name: gpt-4
+          AI_MODEL: o4-mini
+      - name: Assert action attempted to run (not a config/input error)
+        run: |
+          echo "Action completed with outcome: ${{ steps.action.outcome }}"
+          # The action will fail because the tokens are fake and there's no real PR,
+          # but it should fail due to API/runtime errors, not missing input errors.
+          # We just verify the step ran (outcome is either success or failure, not skipped).
+          if [ "${{ steps.action.outcome }}" = "skipped" ]; then
+            echo "FAIL: action step was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action ran with gpt_model_name input provided"

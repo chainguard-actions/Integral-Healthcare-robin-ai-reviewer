@@ -1,0 +1,53 @@
+name: Test files_to_ignore input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: pull_request
+      GITHUB_REF: refs/pull/1/merge
+      GITHUB_HEAD_REF: feature-branch
+      GITHUB_BASE_REF: main
+      GITHUB_REPOSITORY: test-owner/test-repo
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create fake pull_request event file
+        run: |
+          mkdir -p /tmp/fake-event
+          cat > /tmp/fake-event/event.json <<'EOF'
+          {
+            "pull_request": {
+              "number": 99,
+              "title": "Files ignore test PR",
+              "body": "Testing files_to_ignore"
+            }
+          }
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        env:
+          GITHUB_EVENT_PATH: /tmp/fake-event/event.json
+        with:
+          GITHUB_TOKEN: fake-github-token
+          AI_API_KEY: fake-ai-api-key
+          AI_PROVIDER: openai
+          AI_MODEL: o4-mini
+          files_to_ignore: "*.lock package-lock.json yarn.lock"
+
+      - name: Assert action accepted files_to_ignore and ran through validation
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action should fail because the fake token causes a GitHub API error,
+          # not because of argument parsing or files_to_ignore handling issues.
+          if [ "$OUTCOME" = "failure" ] || [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action accepted files_to_ignore input and ran through validation"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

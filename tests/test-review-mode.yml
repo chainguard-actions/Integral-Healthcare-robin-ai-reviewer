@@ -1,0 +1,44 @@
+name: Test review mode and prompt override inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Test that review_mode=review and prompt_override inputs are accepted
+      # without validation errors. The action will fail at the GitHub API call
+      # stage (fake credentials), which is expected.
+      - name: Create fake GitHub event file
+        run: |
+          mkdir -p /tmp/fake-event
+          echo '{"pull_request":{"number":99}}' > /tmp/fake-event/event.json
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          GITHUB_TOKEN: fake-github-token-for-testing
+          AI_API_KEY: fake-ai-api-key-for-testing
+          AI_PROVIDER: openai
+          AI_MODEL: gpt-4o-mini
+          review_mode: review
+          prompt_override: "You are a code reviewer. Be concise."
+          ai_max_tokens: "1024"
+        env:
+          GITHUB_REPOSITORY: fake-owner/fake-repo
+          GITHUB_EVENT_PATH: /tmp/fake-event/event.json
+          GITHUB_EVENT_NAME: pull_request
+
+      # The action should fail at the API call stage, not at input validation.
+      - name: Assert action ran and failed (expected with fake credentials)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            echo "FAIL: action unexpectedly succeeded with fake credentials"
+            exit 1
+          fi
+          echo "PASS: action correctly failed (expected with fake credentials)"

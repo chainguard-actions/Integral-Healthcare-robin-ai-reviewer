@@ -1,0 +1,81 @@
+name: 'Robin AI Reviewer'
+description: 'Auto-Review your teams pull requests'
+inputs:
+  GITHUB_TOKEN:
+    description: 'GitHub API token'
+    required: true
+  AI_PROVIDER:
+    description: 'AI provider to use (openai or claude)'
+    required: false
+    default: 'openai'
+  AI_API_KEY:
+    description: 'API key for the selected AI provider'
+    required: true
+  AI_MODEL:
+    description: 'The AI model to use for generating reviews'
+    required: false
+    default: 'gpt-5-mini'
+  ai_max_tokens:
+    description: 'Maximum tokens the AI may generate in its review (default: 8192)'
+    required: false
+    default: ''
+  max_diff_bytes:
+    description: 'Soft cap on diff size in bytes before truncation (default: 200000)'
+    required: false
+    default: ''
+  chunk_threshold_bytes:
+    description: 'When the diff exceeds this many bytes, split per-file and review each chunk individually (default: 100000; 0 to disable). Ignored in review_mode=review.'
+    required: false
+    default: ''
+  prompt_override:
+    description: 'Inline replacement for the system prompt. Takes precedence over prompt_file.'
+    required: false
+    default: ''
+  prompt_file:
+    description: 'Path (inside the workspace) to a file containing the system prompt to use instead of the bundled default.'
+    required: false
+    default: ''
+  review_mode:
+    description: 'Output format: "comment" (default; single PR comment) or "review" (inline line-anchored comments via the GitHub Reviews API).'
+    required: false
+    default: 'comment'
+  github_api_url:
+    description: 'URL to the API of your Github Server, only necessary for Github Enterprise customers'
+    required: false
+    default: 'https://api.github.com'
+  files_to_ignore:
+    description: 'Whitespace separated list of files to ignore'
+    required: false
+    default: ''
+  # Legacy support - scheduled for removal in v2.0 (target 2026-Q3)
+  OPEN_AI_API_KEY:
+    description: '[DEPRECATED — removed in v2.0 (target 2026-Q3)] Use AI_API_KEY instead. OpenAI API token.'
+    required: false
+  gpt_model_name:
+    description: '[DEPRECATED — removed in v2.0 (target 2026-Q3)] Use AI_MODEL instead. The OpenAI model used to generate the chat completion.'
+    required: false
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  # Secrets are passed via env so they don't appear in `ps` listings or in
+  # the workflow log when the entrypoint echoes its arguments. Non-secret
+  # configuration is still passed via args.
+  env:
+    GITHUB_TOKEN_INPUT: ${{ inputs.GITHUB_TOKEN }}
+    AI_API_KEY_INPUT: ${{ inputs.AI_API_KEY }}
+    OPEN_AI_API_KEY_INPUT: ${{ inputs.OPEN_AI_API_KEY }}
+  args:
+    - --ai_provider=${{ inputs.AI_PROVIDER }}
+    - --ai_model=${{ inputs.AI_MODEL }}
+    - --ai_max_tokens=${{ inputs.ai_max_tokens }}
+    - --max_diff_bytes=${{ inputs.max_diff_bytes }}
+    - --chunk_threshold_bytes=${{ inputs.chunk_threshold_bytes }}
+    - --prompt_override=${{ inputs.prompt_override }}
+    - --prompt_file=${{ inputs.prompt_file }}
+    - --review_mode=${{ inputs.review_mode }}
+    - --github_api_url=${{ inputs.github_api_url }}
+    - --files_to_ignore=${{ inputs.files_to_ignore }}
+    - --gpt_model_name=${{ inputs.gpt_model_name }}
+branding:
+  icon: 'tag'
+  color: 'purple'

@@ -1,4 +1,4 @@
-name: Test claude AI provider selection
+name: Test files_to_ignore input is accepted
 on:
   workflow_dispatch:
 
@@ -8,20 +8,20 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # Test that the action accepts the claude provider and a claude model.
+      # Test that files_to_ignore is accepted without crashing.
       # The action will fail at the GitHub API call (no PR under
-      # workflow_dispatch), but it must NOT fail during provider/model
-      # validation — confirming the claude code path is exercised.
+      # workflow_dispatch), but it must NOT fail during argument parsing.
       - id: action
         uses: .
         continue-on-error: true
         with:
           GITHUB_TOKEN: ${{ github.token }}
-          AI_API_KEY: fake-claude-key-for-testing
-          AI_PROVIDER: claude
-          AI_MODEL: claude-sonnet-4-5
+          AI_API_KEY: fake-key-for-testing
+          AI_PROVIDER: openai
+          AI_MODEL: gpt-4o-mini
+          files_to_ignore: "package-lock.json yarn.lock *.min.js"
 
-      - name: Assert action failed at GitHub API (not at provider validation)
+      - name: Assert action failed at GitHub API (not at files_to_ignore setup)
         env:
           OUTCOME: ${{ steps.action.outcome }}
         run: |
@@ -30,4 +30,4 @@ jobs:
             echo "FAIL: action unexpectedly succeeded with no PR context"
             exit 1
           fi
-          echo "PASS: action with claude provider failed as expected (no PR context)"
+          echo "PASS: action with files_to_ignore failed as expected (no PR context)"

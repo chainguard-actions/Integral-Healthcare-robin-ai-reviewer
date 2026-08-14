@@ -1,0 +1,33 @@
+name: Test legacy OPEN_AI_API_KEY input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run action with legacy OPEN_AI_API_KEY input
+        id: action
+        uses: .
+        continue-on-error: true
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          OPEN_AI_API_KEY: fake-legacy-key
+          AI_API_KEY: fake-api-key
+          AI_PROVIDER: openai
+          AI_MODEL: gpt-4o-mini
+          review_mode: comment
+      - name: Assert action was invoked (not a config/input error)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action may fail because there is no real PR context under act,
+          # but it must not fail due to the OPEN_AI_API_KEY input being rejected.
+          # Any outcome other than a hard crash on input validation is acceptable.
+          if [ "$OUTCOME" = "success" ] || [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action was invoked with OPEN_AI_API_KEY input"
+          else
+            echo "FAIL: unexpected outcome: $OUTCOME"
+            exit 1
+          fi

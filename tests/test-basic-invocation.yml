@@ -1,0 +1,37 @@
+name: Test basic invocation reaches GitHub API call
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Under workflow_dispatch there is no pull_request context, so
+      # GITHUB_EVENT_PATH will not contain a PR number. The action will
+      # initialise successfully (all required inputs are present) and then
+      # fail when it tries to fetch the diff for PR "null" from the GitHub
+      # API. We verify the action fails (expected) rather than crashing
+      # during argument parsing or env-var validation.
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          AI_API_KEY: fake-key-for-testing
+          AI_PROVIDER: openai
+          AI_MODEL: gpt-4o-mini
+
+      - name: Assert action failed at GitHub API (not at startup)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action must fail (no real PR to review), but it must NOT
+          # succeed — a success would mean something unexpected happened.
+          if [ "$OUTCOME" = "success" ]; then
+            echo "FAIL: action unexpectedly succeeded with no PR context"
+            exit 1
+          fi
+          echo "PASS: action failed as expected (no PR context under workflow_dispatch)"

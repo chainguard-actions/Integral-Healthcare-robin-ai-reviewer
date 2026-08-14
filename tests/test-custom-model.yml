@@ -1,4 +1,4 @@
-name: Test files_to_ignore input
+name: Test custom gpt_model_name input
 on:
   workflow_dispatch:
 jobs:
@@ -12,12 +12,11 @@ jobs:
         continue-on-error: true
         with:
           GITHUB_TOKEN: ${{ github.token }}
-          OPEN_AI_API_KEY: fake-openai-key-for-ignore-test
-          gpt_model_name: gpt-4-turbo
+          OPEN_AI_API_KEY: fake-openai-key-for-model-test
+          gpt_model_name: gpt-3.5-turbo
           github_api_url: https://api.github.com
-          files_to_ignore: "*.lock package-lock.json"
 
-      - name: Assert action ran with files_to_ignore input
+      - name: Assert action ran with custom model input
         env:
           OUTCOME: ${{ steps.action.outcome }}
         run: |
@@ -28,4 +27,4 @@ jobs:
             echo "FAIL: action was skipped, it did not run at all"
             exit 1
           fi
-          echo "PASS: action ran with files_to_ignore set (outcome=$OUTCOME)"
+          echo "PASS: action ran with gpt-3.5-turbo model (outcome=$OUTCOME)"

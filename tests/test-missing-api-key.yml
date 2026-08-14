@@ -1,4 +1,4 @@
-name: Test missing AI API key error
+name: Test missing AI_API_KEY validation
 on:
   workflow_dispatch:
 jobs:
@@ -7,28 +7,20 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # The action requires AI_API_KEY; omitting it should cause the action to
-      # exit non-zero with a clear error message about the missing variable.
-      - id: action
+      - name: Run action without AI_API_KEY (expect failure)
+        id: action
         uses: .
         continue-on-error: true
         with:
-          GITHUB_TOKEN: fake-github-token
-          # AI_API_KEY intentionally omitted to trigger validation error
+          GITHUB_TOKEN: ${{ github.token }}
+          AI_API_KEY: ''
           AI_PROVIDER: openai
-          AI_MODEL: gpt-4o-mini
-        env:
-          GITHUB_REPOSITORY: fake-owner/fake-repo
-          GITHUB_EVENT_PATH: /dev/null
-          GITHUB_EVENT_NAME: pull_request
 
-      - name: Assert action failed due to missing AI_API_KEY
-        env:
-          OUTCOME: ${{ steps.action.outcome }}
+      - name: Assert action failed due to missing API key
         run: |
-          echo "outcome: $OUTCOME"
-          if [ "$OUTCOME" != "failure" ]; then
-            echo "FAIL: expected action to fail when AI_API_KEY is missing, but outcome was '$OUTCOME'"
+          echo "outcome: ${{ steps.action.outcome }}"
+          if [ "${{ steps.action.outcome }}" != "failure" ]; then
+            echo "FAIL: expected action to fail when AI_API_KEY is empty"
             exit 1
           fi
-          echo "PASS: action correctly failed when AI_API_KEY was missing"
+          echo "PASS: action correctly failed when AI_API_KEY was not provided"

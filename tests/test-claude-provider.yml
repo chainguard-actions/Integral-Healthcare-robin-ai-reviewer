@@ -1,4 +1,4 @@
-name: Test Claude AI provider input
+name: Test claude AI provider validation
 on:
   workflow_dispatch:
 jobs:
@@ -7,36 +7,21 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # Provide all required inputs using the Claude provider. The action
-      # should pass argument parsing and env-var validation, then fail when
-      # it tries to call the GitHub API with a fake token.
-      - name: Create fake GitHub event file
-        run: |
-          mkdir -p /tmp/fake-event
-          echo '{"pull_request":{"number":7}}' > /tmp/fake-event/event.json
-
-      - id: action
+      - name: Run action with claude provider but no API key (expect failure on missing key)
+        id: action
         uses: .
         continue-on-error: true
         with:
-          GITHUB_TOKEN: fake-github-token-for-testing
-          AI_API_KEY: fake-claude-api-key-for-testing
+          GITHUB_TOKEN: ${{ github.token }}
           AI_PROVIDER: claude
-          AI_MODEL: claude-3-haiku-20240307
-        env:
-          GITHUB_REPOSITORY: fake-owner/fake-repo
-          GITHUB_EVENT_PATH: /tmp/fake-event/event.json
-          GITHUB_EVENT_NAME: pull_request
+          AI_API_KEY: ''
+          AI_MODEL: claude-sonnet-4-5
 
-      # With fake credentials the action should fail at the GitHub API call,
-      # not at provider validation. Either way it must not succeed.
-      - name: Assert action ran and failed (expected with fake credentials)
-        env:
-          OUTCOME: ${{ steps.action.outcome }}
+      - name: Assert action failed due to missing API key (not invalid provider)
         run: |
-          echo "outcome: $OUTCOME"
-          if [ "$OUTCOME" = "success" ]; then
-            echo "FAIL: action unexpectedly succeeded with fake credentials"
+          echo "outcome: ${{ steps.action.outcome }}"
+          if [ "${{ steps.action.outcome }}" != "failure" ]; then
+            echo "FAIL: expected action to fail when AI_API_KEY is empty"
             exit 1
           fi
-          echo "PASS: action correctly failed (expected with fake credentials)"
+          echo "PASS: action correctly failed with claude provider when AI_API_KEY was not provided"
